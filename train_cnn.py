@@ -14,6 +14,7 @@ from keras.models import Model
 from keras.layers import Dense, GlobalAveragePooling2D
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from data import DataSet
+import pandas
 import os.path
 
 data = DataSet()
@@ -30,47 +31,53 @@ early_stopper = EarlyStopping(patience=10)
 # Helper: TensorBoard
 tensorboard = TensorBoard(log_dir=os.path.join('data', 'logs'))
 
-def get_generators():
-    train_datagen = ImageDataGenerator(
-        rescale=1./255,
-        shear_range=0.2,
-        horizontal_flip=True,
-        rotation_range=10.,
-        width_shift_range=0.2,
-        height_shift_range=0.2)
-
-    test_datagen = ImageDataGenerator(rescale=1./255)
-
-    train_generator = train_datagen.flow_from_directory(
-        os.path.join('data', 'train'),
-        target_size=(299, 299),
-        batch_size=32,
-        classes=data.classes,
-        class_mode='categorical')
-
-    validation_generator = test_datagen.flow_from_directory(
-        os.path.join('data', 'test'),
-        target_size=(299, 299),
-        batch_size=32,
-        classes=data.classes,
-        class_mode='categorical')
+def get_generators(classname):
+    # train_datagen = ImageDataGenerator(
+    #     rescale=1./255,
+    #     shear_range=0.2,
+    #     horizontal_flip=True,
+    #     rotation_range=10.,
+    #     width_shift_range=0.2,
+    #     height_shift_range=0.2)
+    #
+    # test_datagen = ImageDataGenerator(rescale=1./255)
+    #
+    # train_generator = train_datagen.flow_from_directory(
+    #     os.path.join('data', 'train'),
+    #     target_size=(250, 250),
+    #     batch_size=32,
+    #     classes=data.classes,
+    #     class_mode='raw')
+    #
+    # validation_generator = test_datagen.flow_from_directory(
+    #     os.path.join('data', 'test'),
+    #     target_size=(250, 250),
+    #     batch_size=32,
+    #     classes=data.classes,
+    #     class_mode='raw')
+    df = pandas.read_csv('./data/train/train-' + classname + '.csv')
+    train_datagen = ImageDataGenerator(rescale=1. / 255)
+    train_generator = train_datagen.flow_from_dataframe(dataframe=df, directory='./data/train/', x_col="id", y_col="label",
+                                                  class_mode="raw", target_size=(250, 250),color_mode="rgb", batch_size=32)
+    test_datagen = ImageDataGenerator(rescale=1. / 255)
+    df_test = pandas.read_csv('./data/test/test-'+ classname + '.csv')
+    validation_generator = test_datagen.flow_from_dataframe(dataframe=df_test, directory="./data/test", x_col="id", y_col="label",
+                                                  class_mode="raw", target_size=(250, 250), batch_size=32)
 
     return train_generator, validation_generator
 
 def get_model(weights='imagenet'):
     # create the base pre-trained model
     base_model = InceptionV3(weights=weights, include_top=False)
-
-    # add a global spatial average pooling layer
     x = base_model.output
+    # add a global spatial average pooling layer
     x = GlobalAveragePooling2D()(x)
     # let's add a fully-connected layer
     x = Dense(1024, activation='relu')(x)
-    # and a logistic layer
-    predictions = Dense(len(data.classes), activation='softmax')(x)
-
+    predictions = Dense(1,  kernel_initializer='normal')(x)
     # this is the model we will train
     model = Model(inputs=base_model.input, outputs=predictions)
+
     return model
 
 def freeze_all_but_top(model):
@@ -81,8 +88,8 @@ def freeze_all_but_top(model):
         layer.trainable = False
 
     # compile the model (should be done *after* setting layers to non-trainable)
-    model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
-
+    #model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
+    model.compile(loss='mean_squared_error', optimizer='adam')
     return model
 
 def freeze_all_but_mid_and_top(model):
@@ -107,31 +114,34 @@ def train_model(model, nb_epoch, generators, callbacks=[]):
     train_generator, validation_generator = generators
     model.fit_generator(
         train_generator,
-        steps_per_epoch=100,
+        steps_per_epoch=51,
         validation_data=validation_generator,
-        validation_steps=10,
+#        validation_steps=10,
         epochs=nb_epoch,
         callbacks=callbacks)
     return model
 
 def main(weights_file):
     model = get_model()
-    generators = get_generators()
+    generators = get_generators("Blood")
 
     if weights_file is None:
         print("Loading network from ImageNet weights.")
-        # Get and train the top layers.
+        # Get and train the top layers. The top layer is the output layer. bottom is the input layer. we keep the InceptionV3 network untouch and only train the output layer.
         model = freeze_all_but_top(model)
-        model = train_model(model, 10, generators)
+        model = train_model(model, 200, generators, [checkpointer, early_stopper, tensorboard])
     else:
         print("Loading saved model: %s." % weights_file)
         model.load_weights(weights_file)
+        #model = freeze_all_but_top(model)
+        model.compile(loss='mean_squared_error', optimizer='adam')
+        model = train_model(model, 200, generators, [checkpointer, early_stopper, tensorboard])
 
     # Get and train the mid layers.
-    model = freeze_all_but_mid_and_top(model)
-    model = train_model(model, 1000, generators,
-                        [checkpointer, early_stopper, tensorboard])
+    #model = freeze_all_but_mid_and_top(model)
+    #model = train_model(model, 1000, generators, [checkpointer, early_stopper, tensorboard])
+
 
 if __name__ == '__main__':
-    weights_file = None
+    weights_file = '/Users/longquanchen/Desktop/Work/DeepLearning/five-video-classification-methods/data/checkpoints/inception.011-718.24.hdf5'
     main(weights_file)

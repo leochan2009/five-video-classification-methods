@@ -8,6 +8,11 @@ import glob
 import os
 import os.path
 from subprocess import call
+def writeGroundTruthCSV(generated_files_truth, outputFileName):
+    with open(outputFileName, 'a') as fout:
+        writer = csv.writer(fout)
+        for file_truth in generated_files_truth:
+            writer.writerow(file_truth)
 
 def extract_files():
     """After we have all of our videos split between train and test, and
@@ -26,34 +31,58 @@ def extract_files():
     """
     data_file = []
     folders = ['train', 'test']
-
+    classes = ["Blood","Clarity", "Particles"]
     for folder in folders:
-        class_folders = glob.glob(os.path.join(folder, '*'))
+        videos = glob.glob(os.path.join(folder, '*.mp4'))
 
-        for vid_class in class_folders:
-            class_files = glob.glob(os.path.join(vid_class, '*.avi'))
-
-            for video_path in class_files:
+        for video in videos:
+            for name in classes:
                 # Get the parts of the file.
-                video_parts = get_video_parts(video_path)
+                #video_parts = get_video_parts(video_path)
+                #train_or_test, classname, filename_no_ext, filename = video_parts
+                parts = video.split(os.path.sep)
+                train_or_test = parts[0]
+                filename = parts[1]
+                validFrames = []
+                validFramesGroundtruth = []
+                outputFileName= './'+ train_or_test + '/' + train_or_test + '-' + name +'.csv'
+                with open(outputFileName, 'w') as fout:
+                    writer = csv.writer(fout)
+                    writer.writerow(['id', 'label'])
+                with open(os.path.join(train_or_test, filename[:-4]+ name+".csv"), 'r') as fin:
+                    reader = csv.reader(fin, delimiter = ',')
+                    for row in reader:
+                        if float(row[1])>-1:
+                            validFrames.append(int(row[0]))
+                            validFramesGroundtruth.append(float(row[1]))
+                    filename_no_ext = filename.split('.')[0]
+                    # Only extract if we haven't done it yet. Otherwise, just get
+                    # the info.
+                    if not bool(os.path.exists(os.path.join(train_or_test, filename_no_ext + '-00000.png'))):
+                        #if not check_already_extracted(video_parts):
+                        # Now extract it.
+                        src = os.path.join(train_or_test, filename)
+                        dest = os.path.join(train_or_test,
+                                            filename_no_ext + '-%05d.png')
+                        call(["ffmpeg", "-i", src, "-start_number", "0", dest])
 
-                train_or_test, classname, filename_no_ext, filename = video_parts
+                    # Now get how many frames it is.
+                    #nb_frames = get_nb_frames_for_video(video_parts)
+                    generated_files = sorted(glob.glob(os.path.join(train_or_test, filename_no_ext + '*.png')))
+                    nb_frames = len(generated_files)
+                    # delete the unused frames
+                    generated_files_truth = []
+                    for frame in range(nb_frames):
+                        # if not (frame in validFrames):
+                        #     os.remove(os.path.join(generated_files[frame])) no need to remove files as blood, particle or clarity need different frames
+                        if  frame in validFrames:
+                            generated_files_truth.append([generated_files[frame].split(os.path.sep)[1], validFramesGroundtruth[validFrames.index(frame)]])
+                    writeGroundTruthCSV(generated_files_truth, outputFileName)
+                    data_file.append([train_or_test, filename_no_ext, len(generated_files_truth)])
 
-                # Only extract if we haven't done it yet. Otherwise, just get
-                # the info.
-                if not check_already_extracted(video_parts):
-                    # Now extract it.
-                    src = os.path.join(train_or_test, classname, filename)
-                    dest = os.path.join(train_or_test, classname,
-                        filename_no_ext + '-%04d.jpg')
-                    call(["ffmpeg", "-i", src, dest])
 
-                # Now get how many frames it is.
-                nb_frames = get_nb_frames_for_video(video_parts)
 
-                data_file.append([train_or_test, classname, filename_no_ext, nb_frames])
-
-                print("Generated %d frames for %s" % (nb_frames, filename_no_ext))
+                    print("Generated %d frames for %s" % (nb_frames, filename_no_ext))
 
     with open('data_file.csv', 'w') as fout:
         writer = csv.writer(fout)
@@ -66,7 +95,7 @@ def get_nb_frames_for_video(video_parts):
     the number of frames that were extracted."""
     train_or_test, classname, filename_no_ext, _ = video_parts
     generated_files = glob.glob(os.path.join(train_or_test, classname,
-                                filename_no_ext + '*.jpg'))
+                                filename_no_ext + '*.png'))
     return len(generated_files)
 
 def get_video_parts(video_path):

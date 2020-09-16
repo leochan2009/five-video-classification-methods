@@ -47,10 +47,10 @@ class DataSet():
         self.data = self.get_data()
 
         # Get the classes.
-        self.classes = self.get_classes()
+        #self.classes = self.get_classes()
 
         # Now do some minor data cleaning.
-        self.data = self.clean_data()
+        #self.data = self.clean_data()
 
         self.image_shape = image_shape
 
@@ -62,17 +62,6 @@ class DataSet():
             data = list(reader)
 
         return data
-
-    def clean_data(self):
-        """Limit samples to greater than the sequence length and fewer
-        than N frames. Also limit it to classes we want to use."""
-        data_clean = []
-        for item in self.data:
-            if int(item[3]) >= self.seq_length and int(item[3]) <= self.max_frames \
-                    and item[1] in self.classes:
-                data_clean.append(item)
-
-        return data_clean
 
     def get_classes(self):
         """Extract the classes from our data. If we want to limit them,
