@@ -26,7 +26,7 @@ checkpointer = ModelCheckpoint(
     save_best_only=True)
 
 # Helper: Stop when we stop learning.
-early_stopper = EarlyStopping(patience=10)
+early_stopper = EarlyStopping(patience=100)
 
 # Helper: TensorBoard
 tensorboard = TensorBoard(log_dir=os.path.join('data', 'logs'))
@@ -116,7 +116,7 @@ def train_model(model, nb_epoch, generators, callbacks=[]):
         train_generator,
         steps_per_epoch=51,
         validation_data=validation_generator,
-#        validation_steps=10,
+        validation_steps=5,
         epochs=nb_epoch,
         callbacks=callbacks)
     return model
@@ -133,7 +133,7 @@ def main(weights_file):
     else:
         print("Loading saved model: %s." % weights_file)
         model.load_weights(weights_file)
-        model = freeze_all_but_top(model)
+        #model = freeze_all_but_top(model)
         model.compile(loss='mean_squared_error', optimizer='adam')
         model = train_model(model, 200, generators, [checkpointer, early_stopper, tensorboard])
 
@@ -143,5 +143,5 @@ def main(weights_file):
 
 
 if __name__ == '__main__':
-    weights_file = '/Users/longquanchen/Desktop/Work/DeepLearning/five-video-classification-methods/data/checkpoints/inception.017-612.28.hdf5'
+    weights_file = './data/checkpoints/inception.017-612.28.hdf5'
     main(weights_file)
