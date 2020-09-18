@@ -46,9 +46,10 @@ def extract_files():
                 validFrames = []
                 validFramesGroundtruth = []
                 outputFileName= './'+ train_or_test + '/' + train_or_test + '-' + name +'.csv'
-                with open(outputFileName, 'w') as fout:
-                    writer = csv.writer(fout)
-                    writer.writerow(['id', 'label'])
+                if not os.path.exists(outputFileName):
+                    with open(outputFileName, 'w') as fout:
+                        writer = csv.writer(fout)
+                        writer.writerow(['id', 'label'])
                 with open(os.path.join(train_or_test, filename[:-4]+ name+".csv"), 'r') as fin:
                     reader = csv.reader(fin, delimiter = ',')
                     for row in reader:
@@ -78,11 +79,11 @@ def extract_files():
                         if  frame in validFrames:
                             generated_files_truth.append([generated_files[frame].split(os.path.sep)[1], validFramesGroundtruth[validFrames.index(frame)]])
                     writeGroundTruthCSV(generated_files_truth, outputFileName)
-                    data_file.append([train_or_test, filename_no_ext, len(generated_files_truth)])
-
-
-
                     print("Generated %d frames for %s" % (nb_frames, filename_no_ext))
+            data_file.append([train_or_test, filename_no_ext, len(generated_files_truth)])
+
+
+
 
     with open('data_file.csv', 'w') as fout:
         writer = csv.writer(fout)

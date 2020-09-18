@@ -133,7 +133,7 @@ def main(weights_file):
     else:
         print("Loading saved model: %s." % weights_file)
         model.load_weights(weights_file)
-        #model = freeze_all_but_top(model)
+        model = freeze_all_but_top(model)
         model.compile(loss='mean_squared_error', optimizer='adam')
         model = train_model(model, 200, generators, [checkpointer, early_stopper, tensorboard])
 
@@ -143,5 +143,5 @@ def main(weights_file):
 
 
 if __name__ == '__main__':
-    weights_file = '/Users/longquanchen/Desktop/Work/DeepLearning/five-video-classification-methods/data/checkpoints/inception.011-718.24.hdf5'
+    weights_file = '/Users/longquanchen/Desktop/Work/DeepLearning/five-video-classification-methods/data/checkpoints/inception.017-612.28.hdf5'
     main(weights_file)
