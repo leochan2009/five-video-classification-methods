@@ -32,7 +32,7 @@ def threadsafe_generator(func):
 
 class DataSet():
 
-    def __init__(self, seq_length=40, class_limit=None, image_shape=(224, 224, 3)):
+    def __init__(self, seq_length=21, class_limit=None, image_shape=(250, 250, 3), model_name ="Blood"):
         """Constructor.
         seq_length = (int) the number of frames to consider
         class_limit = (int) number of classes to limit the data to.
@@ -42,7 +42,7 @@ class DataSet():
         self.class_limit = class_limit
         self.sequence_path = os.path.join('data', 'sequences')
         self.max_frames = 300  # max number of frames a video can have for us to use it
-
+        self.model_name = model_name
         # Get the data.
         self.data = self.get_data()
 
@@ -150,35 +150,62 @@ class DataSet():
 
         print("Creating %s generator with %d samples." % (train_test, len(data)))
 
+        # open groundtruth data
+        if train_test == 'train':
+            with open(os.path.join('data', 'train', 'train-' + self.model_name + '.csv'), 'r') as fin:
+                reader = csv.reader(fin)
+                next(reader) #skip header
+                data_groundTruth = {rows[0]: float(rows[1]) for rows in reader}
+        else:
+            with open(os.path.join('data', 'test', 'test-' + self.model_name + '.csv'), 'r') as fin:
+                reader = csv.reader(fin)
+                next(reader) #skip header
+                data_groundTruth = {rows[0]: float(rows[1]) for rows in reader}
+
         while 1:
             X, y = [], []
 
             # Generate batch_size samples.
-            for _ in range(batch_size):
+            appendedsequenceSize = 0
+            while appendedsequenceSize < batch_size:
                 # Reset to be safe.
                 sequence = None
-
+                groundtruth = -1
                 # Get a random sample.
-                sample = random.choice(data)
+                sample = random.choice(data) # sample are for different video clips
 
                 # Check to see if we've already saved this sequence.
                 if data_type is "images":
                     # Get and resample frames.
+                    # the sample is the folder name contains the video frames as %3d.jpg.
+                    # to do, for our data, we need to get the neighboroughing frames -10...+10, 21 frames.
+                    # frames are the lists of frame names
                     frames = self.get_frames_for_sample(sample)
-                    frames = self.rescale_list(frames, self.seq_length)
-
-                    # Build the image sequence
-                    sequence = self.build_image_sequence(frames)
+                    # rescale_list function pick the data at certain interval so the final frames size is same as seq_length.
+                    #frames = self.rescale_list(frames, self.seq_length)
+                    framesLength = len(frames)
+                    sectionIndex = random.randint(self.seq_length//2, framesLength-self.seq_length//2-1)
+                    # if seq_length =30 , frame length 60, return [15, 45), assume 44 is returned
+                    for search in range (-self.seq_length//2, self.seq_length//2):
+                        frameNameAtIndex = sample[1] + "-" + str(sectionIndex-search). zfill(5) + ".png"
+                        #if newSectionIndex = 44-(-15) = 59
+                        if data_groundTruth.get(frameNameAtIndex, -1) > -0.99:
+                            groundtruth = data_groundTruth.get(frameNameAtIndex, -1)
+                            frames = frames[(sectionIndex - self.seq_length//2):(sectionIndex+ self.seq_length//2)]
+                            # Build the image sequence
+                            sequence = self.build_image_sequence(frames)
+                            break
                 else:
                     # Get the sequence from disk.
                     sequence = self.get_extracted_sequence(data_type, sample)
 
                     if sequence is None:
                         raise ValueError("Can't find sequence. Did you generate them?")
-
-                X.append(sequence)
-                y.append(self.get_class_one_hot(sample[1]))
-
+                if groundtruth > -0.99:
+                    appendedsequenceSize = appendedsequenceSize + 1
+                    X.append(sequence)
+                    #y.append(self.get_class_one_hot(sample[1]))
+                    y.append(groundtruth)
             yield np.array(X), np.array(y)
 
     def build_image_sequence(self, frames):
@@ -226,9 +253,9 @@ class DataSet():
     def get_frames_for_sample(sample):
         """Given a sample row from the data file, get all the corresponding frame
         filenames."""
-        path = os.path.join('data', sample[0], sample[1])
-        filename = sample[2]
-        images = sorted(glob.glob(os.path.join(path, filename + '*jpg')))
+        path = os.path.join('data', sample[0])
+        filename = sample[1]
+        images = sorted(glob.glob(os.path.join(path, filename + '*.png')))
         return images
 
     @staticmethod

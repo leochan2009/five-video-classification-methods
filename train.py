@@ -6,10 +6,11 @@ from models import ResearchModels
 from data import DataSet
 import time
 import os.path
+import csv
 
 def train(data_type, seq_length, model, saved_model=None,
           class_limit=None, image_shape=None,
-          load_to_memory=False, batch_size=32, nb_epoch=100):
+          load_to_memory=False, batch_size=32, nb_epoch=100, model_name="Blood"):
     # Helper: Save the model.
     checkpointer = ModelCheckpoint(
         filepath=os.path.join('data', 'checkpoints', model + '-' + data_type + \
@@ -21,7 +22,7 @@ def train(data_type, seq_length, model, saved_model=None,
     tb = TensorBoard(log_dir=os.path.join('data', 'logs', model))
 
     # Helper: Stop when we stop learning.
-    early_stopper = EarlyStopping(patience=5)
+    early_stopper = EarlyStopping(patience=20)
 
     # Helper: Save results.
     timestamp = time.time()
@@ -32,18 +33,23 @@ def train(data_type, seq_length, model, saved_model=None,
     if image_shape is None:
         data = DataSet(
             seq_length=seq_length,
-            class_limit=class_limit
+            class_limit=class_limit,
+            model_name = model_name
         )
     else:
         data = DataSet(
             seq_length=seq_length,
             class_limit=class_limit,
-            image_shape=image_shape
+            image_shape=image_shape,
+            model_name = model_name
         )
 
     # Get samples per epoch.
     # Multiply by 0.7 to attempt to guess how much of data.data is the train set.
-    steps_per_epoch = (len(data.data) * 0.7) // batch_size
+    with open(os.path.join('data', 'train', 'train-' + data.model_name + '.csv'), 'r') as fin:
+        reader = csv.reader(fin)
+        data_groundTruth = list(reader)
+        steps_per_epoch = (len(data_groundTruth) * 0.7) // batch_size
 
     if load_to_memory:
         # Get data.
@@ -55,7 +61,7 @@ def train(data_type, seq_length, model, saved_model=None,
         val_generator = data.frame_generator(batch_size, 'test', data_type)
 
     # Get the model.
-    rm = ResearchModels(len(data.classes), model, seq_length, saved_model)
+    rm = ResearchModels(model, seq_length, saved_model)
 
     # Fit!
     if load_to_memory:
@@ -78,24 +84,24 @@ def train(data_type, seq_length, model, saved_model=None,
             callbacks=[tb, early_stopper, csv_logger, checkpointer],
             validation_data=val_generator,
             validation_steps=40,
-            workers=4)
+            workers=1)
 
 def main():
     """These are the main training settings. Set each before running
     this file."""
     # model can be one of lstm, lrcn, mlp, conv_3d, c3d
-    model = 'lstm'
+    model = 'lrcn'
     saved_model = None  # None or weights file
     class_limit = None  # int, can be 1-101 or None
-    seq_length = 40
+    seq_length = 30 # equals 1 second
     load_to_memory = False  # pre-load the sequences into memory
-    batch_size = 32
+    batch_size = 8
     nb_epoch = 1000
 
     # Chose images or features and image shape based on network.
     if model in ['conv_3d', 'c3d', 'lrcn']:
         data_type = 'images'
-        image_shape = (80, 80, 3)
+        image_shape = (250, 250, 3)
     elif model in ['lstm', 'mlp']:
         data_type = 'features'
         image_shape = None
@@ -104,7 +110,7 @@ def main():
 
     train(data_type, seq_length, model, saved_model=saved_model,
           class_limit=class_limit, image_shape=image_shape,
-          load_to_memory=load_to_memory, batch_size=batch_size, nb_epoch=nb_epoch)
+          load_to_memory=load_to_memory, batch_size=batch_size, nb_epoch=nb_epoch, model_name = "Blood")
 
 if __name__ == '__main__':
     main()
