@@ -9,7 +9,7 @@ import os.path
 
 def train(data_type, seq_length, model, saved_model=None,
           class_limit=None, image_shape=None,
-          load_to_memory=False, batch_size=32, nb_epoch=100):
+          load_to_memory=False, batch_size=32, nb_epoch=100, features_length = 14):
     # Helper: Save the model.
     checkpointer = ModelCheckpoint(
         filepath=os.path.join('data', 'checkpoints', model + '-' + data_type + \
@@ -21,7 +21,7 @@ def train(data_type, seq_length, model, saved_model=None,
     tb = TensorBoard(log_dir=os.path.join('data', 'logs', model))
 
     # Helper: Stop when we stop learning.
-    early_stopper = EarlyStopping(patience=5)
+    early_stopper = EarlyStopping(patience=200)
 
     # Helper: Save results.
     timestamp = time.time()
@@ -55,7 +55,7 @@ def train(data_type, seq_length, model, saved_model=None,
         val_generator = data.frame_generator(batch_size, 'test', data_type)
 
     # Get the model.
-    rm = ResearchModels(len(data.classes), model, seq_length, saved_model)
+    rm = ResearchModels(len(data.classes), model, seq_length, saved_model, features_length = features_length)
 
     # Fit!
     if load_to_memory:
@@ -76,7 +76,7 @@ def train(data_type, seq_length, model, saved_model=None,
             epochs=nb_epoch,
             verbose=1,
             callbacks=[tb, early_stopper, csv_logger, checkpointer],
-            validation_data=val_generator,
+            validation_data=generator,
             validation_steps=40,
             workers=4)
 
@@ -85,11 +85,11 @@ def main():
     this file."""
     # model can be one of lstm, lrcn, mlp, conv_3d, c3d
     model = 'lstm'
-    saved_model = None  # None or weights file
+    saved_model = "data/checkpoints/lstm-features.029-0.155.hdf5" # None or weights file
     class_limit = None  # int, can be 1-101 or None
-    seq_length = 40
+    seq_length = 30
     load_to_memory = False  # pre-load the sequences into memory
-    batch_size = 32
+    batch_size = 300
     nb_epoch = 1000
 
     # Chose images or features and image shape based on network.
@@ -97,6 +97,9 @@ def main():
         data_type = 'images'
         image_shape = (80, 80, 3)
     elif model in ['lstm', 'mlp']:
+        data_type = 'features'
+        image_shape = None
+    elif model in ['simple']:
         data_type = 'features'
         image_shape = None
     else:

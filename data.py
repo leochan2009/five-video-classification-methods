@@ -57,7 +57,7 @@ class DataSet():
     @staticmethod
     def get_data():
         """Load our data from file."""
-        with open(os.path.join('data', 'data_file.csv'), 'r') as fin:
+        with open(os.path.join('data', 'data_file_ordinal_logistic_regression.csv'), 'r') as fin:
             reader = csv.reader(fin)
             data = list(reader)
 
@@ -90,6 +90,14 @@ class DataSet():
             return classes[:self.class_limit]
         else:
             return classes
+
+    def get_class_ordinal_encode(self, class_str):
+        label_encoded = self.classes.index(class_str)
+        label_ordinal = np.zeros((len(self.classes),))
+        for i in range(len(self.classes)):
+            if i <= label_encoded:
+                label_ordinal[i] = 1
+        return label_ordinal
 
     def get_class_one_hot(self, class_str):
         """Given a class as a string, return its number in the classes
@@ -171,7 +179,6 @@ class DataSet():
 
                 # Get a random sample.
                 sample = random.choice(data)
-
                 # Check to see if we've already saved this sequence.
                 if data_type is "images":
                     # Get and resample frames.
@@ -188,7 +195,8 @@ class DataSet():
                         raise ValueError("Can't find sequence. Did you generate them?")
 
                 X.append(sequence)
-                y.append(self.get_class_one_hot(sample[1]))
+                #y.append(self.get_class_one_hot(sample[1]))
+                y.append(self.get_class_ordinal_encode(sample[1]))
 
             yield np.array(X), np.array(y)
 

@@ -62,13 +62,17 @@ class ResearchModels():
             print("Loading C3D")
             self.input_shape = (seq_length, 80, 80, 3)
             self.model = self.c3d()
+        elif model == 'simple':
+            print("Loading simple")
+            self.input_shape = (seq_length, features_length)
+            self.model = self.simple_model()
         else:
             print("Unknown network.")
             sys.exit()
 
         # Now compile the network.
         optimizer = Adam(lr=1e-5, decay=1e-6)
-        self.model.compile(loss='categorical_crossentropy', optimizer=optimizer,
+        self.model.compile(loss='MeanSquaredError', optimizer=optimizer,
                            metrics=metrics)
 
         print(self.model.summary())
@@ -78,13 +82,23 @@ class ResearchModels():
         our CNN to this model predomenently."""
         # Model.
         model = Sequential()
-        model.add(LSTM(2048, return_sequences=False,
+        model.add(LSTM(64, return_sequences=False,
                        input_shape=self.input_shape,
                        dropout=0.5))
-        model.add(Dense(512, activation='relu'))
+        model.add(Dense(16, activation='relu'))
         model.add(Dropout(0.5))
-        model.add(Dense(self.nb_classes, activation='softmax'))
+        model.add(Dense(self.nb_classes, activation='sigmoid'))
 
+        return model
+
+    def simple_model(self):
+        # create model
+        model = Sequential()
+        model.add(Flatten(input_shape=self.input_shape))
+        model.add(Dense(20, kernel_initializer='normal', activation='relu'))
+        model.add(Dropout(0.2))
+        model.add(Dense(self.nb_classes, activation='sigmoid'))
+        # Compile model
         return model
 
     def lrcn(self):
@@ -155,7 +169,7 @@ class ResearchModels():
         model.add(Dropout(0.5))
         model.add(Dense(512))
         model.add(Dropout(0.5))
-        model.add(Dense(self.nb_classes, activation='softmax'))
+        model.add(Dense(self.nb_classes, activation='sigmoid'))
 
         return model
 
