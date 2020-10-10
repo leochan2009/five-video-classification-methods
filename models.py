@@ -73,7 +73,7 @@ class ResearchModels():
 
         # Now compile the network.
         optimizer = Adam(lr=1e-5, decay=1e-6)
-        self.model.compile(loss='MeanSquaredError', optimizer=optimizer,
+        self.model.compile(loss='mean_squared_error', optimizer=optimizer,
                            metrics=metrics)
 
         print(self.model.summary())
