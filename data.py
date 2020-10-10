@@ -245,9 +245,13 @@ class DataSet():
     def get_frames_for_sample(sample):
         """Given a sample row from the data file, get all the corresponding frame
         filenames."""
-        path = os.path.join('data', sample[0], sample[1])
-        filename = sample[2]
-        images = sorted(glob.glob(os.path.join(path, filename + '*jpg')))
+        #path = os.path.join('data', sample[0], sample[1])
+        #filename = sample[2]
+        #images = sorted(glob.glob(os.path.join(path, filename + '*jpg')))
+        path = os.path.join(os.getcwd(), 'data', sample[0])
+        filename = sample[2][0:sample[2].rfind('-MatchedToMP4')]
+        seg = int(sample[2][sample[2].rfind('-')+1:])
+        images = [os.path.join(path, filename + '-' + str(i).zfill(5) + '.png') for i in range(30*seg, 30*(seg+1) )]
         return images
 
     @staticmethod

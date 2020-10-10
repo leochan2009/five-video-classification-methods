@@ -1,13 +1,14 @@
 """
 A collection of models we'll use to attempt to classify videos.
 """
-from keras.layers import Dense, Flatten, Dropout, ZeroPadding3D
+from keras.layers import Dense, Flatten, Dropout, ZeroPadding3D, BatchNormalization, Activation
 from keras.layers.recurrent import LSTM
 from keras.models import Sequential, load_model
 from keras.optimizers import Adam, RMSprop
 from keras.layers.wrappers import TimeDistributed
 from keras.layers.convolutional import (Conv2D, MaxPooling3D, Conv3D,
     MaxPooling2D)
+from tensorflow.keras import regularizers
 from collections import deque
 import sys
 
@@ -48,7 +49,7 @@ class ResearchModels():
             self.model = self.lstm()
         elif model == 'lrcn':
             print("Loading CNN-LSTM model.")
-            self.input_shape = (seq_length, 80, 80, 3)
+            self.input_shape = (seq_length, 250, 250, 3)
             self.model = self.lrcn()
         elif model == 'mlp':
             print("Loading simple MLP.")
@@ -117,12 +118,12 @@ class ResearchModels():
 
             # conv
             model.add(TimeDistributed(Conv2D(kernel_filters, (3, 3), padding='same',
-                                             kernel_initializer=init, kernel_regularizer=L2_reg(l=reg_lambda))))
+                                             kernel_initializer=init, kernel_regularizer=regularizers.l2(l=reg_lambda))))
             model.add(TimeDistributed(BatchNormalization()))
             model.add(TimeDistributed(Activation('relu')))
             # conv
             model.add(TimeDistributed(Conv2D(kernel_filters, (3, 3), padding='same',
-                                             kernel_initializer=init, kernel_regularizer=L2_reg(l=reg_lambda))))
+                                             kernel_initializer=init, kernel_regularizer=regularizers.l2(l=reg_lambda))))
             model.add(TimeDistributed(BatchNormalization()))
             model.add(TimeDistributed(Activation('relu')))
             # max pool
@@ -137,11 +138,11 @@ class ResearchModels():
 
         # first (non-default) block
         model.add(TimeDistributed(Conv2D(32, (7, 7), strides=(2, 2), padding='same',
-                                         kernel_initializer=initialiser, kernel_regularizer=L2_reg(l=reg_lambda)),
+                                         kernel_initializer=initialiser, kernel_regularizer=regularizers.l2(l=reg_lambda)),
                                   input_shape=self.input_shape))
         model.add(TimeDistributed(BatchNormalization()))
         model.add(TimeDistributed(Activation('relu')))
-        model.add(TimeDistributed(Conv2D(32, (3,3), kernel_initializer=initialiser, kernel_regularizer=L2_reg(l=reg_lambda))))
+        model.add(TimeDistributed(Conv2D(32, (3,3), kernel_initializer=initialiser, kernel_regularizer=regularizers.l2(l=reg_lambda))))
         model.add(TimeDistributed(BatchNormalization()))
         model.add(TimeDistributed(Activation('relu')))
         model.add(TimeDistributed(MaxPooling2D((2, 2), strides=(2, 2))))
