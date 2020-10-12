@@ -32,13 +32,13 @@ def train(data_type, seq_length, model, saved_model=None,
     if image_shape is None:
         data = DataSet(
             seq_length=seq_length,
-            class_limit=class_limit
+            class_limit=class_limit, modelName = 'coral_ordinal'
         )
     else:
         data = DataSet(
             seq_length=seq_length,
             class_limit=class_limit,
-            image_shape=image_shape
+            image_shape=image_shape, modelName = 'coral_ordinal'
         )
 
     # Get samples per epoch.
@@ -84,8 +84,8 @@ def main():
     """These are the main training settings. Set each before running
     this file."""
     # model can be one of lstm, lrcn, mlp, conv_3d, c3d
-    model = 'lrcn'
-    saved_model = None #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
+    model = 'coral_ordinal_lrcn'
+    saved_model = None #'data/checkpoints/coral_ordinal-features.029-1.194.hdf5' #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
     class_limit = None  # int, can be 1-101 or None
     seq_length = 30
     load_to_memory = False  # pre-load the sequences into memory
@@ -93,13 +93,13 @@ def main():
     nb_epoch = 1000
 
     # Chose images or features and image shape based on network.
-    if model in ['conv_3d', 'c3d', 'lrcn']:
+    if model in ['conv_3d', 'c3d', 'lrcn', 'coral_ordinal_lrcn']:
         data_type = 'images'
         image_shape = (250, 250, 3)
     elif model in ['lstm', 'mlp']:
         data_type = 'features'
         image_shape = None
-    elif model in ['simple']:
+    elif model in ['simple', 'coral_ordinal']:
         data_type = 'features'
         image_shape = None
     else:

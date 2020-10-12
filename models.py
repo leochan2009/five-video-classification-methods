@@ -10,6 +10,7 @@ from keras.layers.convolutional import (Conv2D, MaxPooling3D, Conv3D,
     MaxPooling2D)
 from tensorflow.keras import regularizers
 from collections import deque
+import coral_ordinal as coral
 import sys
 
 class ResearchModels():
@@ -22,6 +23,7 @@ class ResearchModels():
             mlp
             conv_3d
             c3d
+            coral_ordinal
         `nb_classes` = the number of classes to predict
         `seq_length` = the length of our video sequences
         `saved_model` = the path to a saved Keras model to load
@@ -42,7 +44,12 @@ class ResearchModels():
         # Get the appropriate model.
         if self.saved_model is not None:
             print("Loading model %s" % self.saved_model)
-            self.model = load_model(self.saved_model)
+            if not model == 'coral_ordinal':
+                self.model = load_model(self.saved_model)
+            else:
+                self.model = load_model(self.saved_model, custom_objects = {'CoralOrdinal': coral.CoralOrdinal(num_classes=4), \
+                                                                            'OrdinalCrossEntropy': coral.OrdinalCrossEntropy(num_classes=4), 'MeanAbsoluteErrorLabels': coral.MeanAbsoluteErrorLabels}
+                                                                            )
         elif model == 'lstm':
             print("Loading LSTM model.")
             self.input_shape = (seq_length, features_length)
@@ -67,14 +74,25 @@ class ResearchModels():
             print("Loading simple")
             self.input_shape = (seq_length, features_length)
             self.model = self.simple_model()
+        elif model == 'coral_ordinal':
+            print("Loading coral_ordinal")
+            self.input_shape = (seq_length, features_length)
+            self.model = self.coral_ordinal()
+        elif model == 'coral_ordinal_lrcn':
+            print("Loading coral_ordinal_lrcn model.")
+            self.input_shape = (seq_length, 250, 250, 3)
+            self.model = self.coral_ordinal_lrcn()
         else:
             print("Unknown network.")
             sys.exit()
 
         # Now compile the network.
-        optimizer = Adam(lr=1e-5, decay=1e-6)
-        self.model.compile(loss='mean_squared_error', optimizer=optimizer,
+        if not model in ['coral_ordinal', 'coral_ordinal_lrcn']:
+            optimizer = Adam(lr=1e-5, decay=1e-6)
+            self.model.compile(loss='mean_squared_error', optimizer=optimizer,
                            metrics=metrics)
+        else:
+            self.model.compile(loss=coral.OrdinalCrossEntropy(num_classes=4), metrics=[coral.MeanAbsoluteErrorLabels])
 
         print(self.model.summary())
 
@@ -263,4 +281,63 @@ class ResearchModels():
         model.add(Dropout(0.5))
         model.add(Dense(self.nb_classes, activation='softmax'))
 
+        return model
+
+    def coral_ordinal(self):
+        model = Sequential()
+        model.add(LSTM(64, return_sequences=False,
+                       input_shape=self.input_shape,
+                       dropout=0.5))
+        model.add(Dense(16, activation='relu'))
+        model.add(coral.CoralOrdinal(num_classes=4))  # Ordinal variable has 5 labels, 0 through 4.
+        return model
+
+
+    def coral_ordinal_lrcn(self):
+        def add_default_block(model, kernel_filters, init, reg_lambda):
+
+            # conv
+            model.add(TimeDistributed(Conv2D(kernel_filters, (3, 3), padding='same',
+                                             kernel_initializer=init, kernel_regularizer=regularizers.l2(l=reg_lambda))))
+            model.add(TimeDistributed(BatchNormalization()))
+            model.add(TimeDistributed(Activation('relu')))
+            # conv
+            model.add(TimeDistributed(Conv2D(kernel_filters, (3, 3), padding='same',
+                                             kernel_initializer=init, kernel_regularizer=regularizers.l2(l=reg_lambda))))
+            model.add(TimeDistributed(BatchNormalization()))
+            model.add(TimeDistributed(Activation('relu')))
+            # max pool
+            model.add(TimeDistributed(MaxPooling2D((2, 2), strides=(2, 2))))
+
+            return model
+
+        initialiser = 'glorot_uniform'
+        reg_lambda  = 0.001
+
+        model = Sequential()
+
+        # first (non-default) block
+        model.add(TimeDistributed(Conv2D(32, (7, 7), strides=(2, 2), padding='same',
+                                         kernel_initializer=initialiser, kernel_regularizer=regularizers.l2(l=reg_lambda)),
+                                  input_shape=self.input_shape))
+        model.add(TimeDistributed(BatchNormalization()))
+        model.add(TimeDistributed(Activation('relu')))
+        model.add(TimeDistributed(Conv2D(32, (3,3), kernel_initializer=initialiser, kernel_regularizer=regularizers.l2(l=reg_lambda))))
+        model.add(TimeDistributed(BatchNormalization()))
+        model.add(TimeDistributed(Activation('relu')))
+        model.add(TimeDistributed(MaxPooling2D((2, 2), strides=(2, 2))))
+
+        # 2nd-5th (default) blocks
+        model = add_default_block(model, 64,  init=initialiser, reg_lambda=reg_lambda)
+        model = add_default_block(model, 128, init=initialiser, reg_lambda=reg_lambda)
+        model = add_default_block(model, 256, init=initialiser, reg_lambda=reg_lambda)
+        model = add_default_block(model, 512, init=initialiser, reg_lambda=reg_lambda)
+
+        # LSTM output head
+        model.add(TimeDistributed(Flatten()))
+        model.add(LSTM(64, return_sequences=False,
+                       input_shape=self.input_shape,
+                       dropout=0.5))
+        model.add(Dense(16, activation='relu'))
+        model.add(coral.CoralOrdinal(num_classes=4))  # Ordinal variable has 5 labels, 0 through 4.
         return model

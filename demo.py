@@ -34,9 +34,9 @@ def main():
     # model can be one of lstm, lrcn, mlp, conv_3d, c3d.
     model = 'lstm'
     # Must be a weights file.
-    saved_model = 'data/checkpoints/lstm-features.026-0.239.hdf5'
+    saved_model = 'data/checkpoints/lstm-features.285-0.144.hdf5'
     # Sequence length must match the lengh used during training.
-    seq_length = 40
+    seq_length = 30
     # Limit must match that used during training.
     class_limit = 4
 
@@ -47,7 +47,7 @@ def main():
     # TODO Make this way more useful. It should take in the path to
     # an actual video file, extract frames, generate sequences, etc.
     #video_name = 'v_Archery_g04_c02'
-    video_name = 'v_ApplyLipstick_g01_c01'
+    video_name = '20180802-095434_390-MatchedToMP4-309'
 
     # Chose images or features and image shape based on network.
     if model in ['conv_3d', 'c3d', 'lrcn']:

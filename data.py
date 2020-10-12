@@ -32,7 +32,7 @@ def threadsafe_generator(func):
 
 class DataSet():
 
-    def __init__(self, seq_length=40, class_limit=None, image_shape=(224, 224, 3)):
+    def __init__(self, seq_length=40, class_limit=None, image_shape=(224, 224, 3), modelName = ""):
         """Constructor.
         seq_length = (int) the number of frames to consider
         class_limit = (int) number of classes to limit the data to.
@@ -53,6 +53,7 @@ class DataSet():
         self.data = self.clean_data()
 
         self.image_shape = image_shape
+        self.modelName = modelName
 
     @staticmethod
     def get_data():
@@ -93,10 +94,13 @@ class DataSet():
 
     def get_class_ordinal_encode(self, class_str):
         label_encoded = self.classes.index(class_str)
-        label_ordinal = np.zeros((len(self.classes),))
-        for i in range(len(self.classes)):
-            if i <= label_encoded:
-                label_ordinal[i] = 1
+        if not self.modelName == 'coral_ordinal':
+            label_ordinal = np.zeros((len(self.classes),))
+            for i in range(len(self.classes)):
+                if i <= label_encoded:
+                    label_ordinal[i] = 1
+        else:
+            label_ordinal = self.classes.index(class_str)
         return label_ordinal
 
     def get_class_one_hot(self, class_str):
@@ -152,7 +156,8 @@ class DataSet():
                     raise
 
             X.append(sequence)
-            y.append(self.get_class_one_hot(row[1]))
+            #y.append(self.get_class_one_hot(row[1]))
+            y.append(self.get_class_ordinal_encode(row[1]))
 
         return np.array(X), np.array(y)
 
