@@ -11,7 +11,7 @@ from keras.layers.convolutional import (Conv2D, MaxPooling3D, Conv3D,
 from tensorflow.keras import regularizers
 from collections import deque
 import coral_ordinal as coral
-import sys
+import sys, keras
 
 class ResearchModels():
     def __init__(self, nb_classes, model, seq_length,
@@ -44,7 +44,7 @@ class ResearchModels():
         # Get the appropriate model.
         if self.saved_model is not None:
             print("Loading model %s" % self.saved_model)
-            if not model == 'coral_ordinal':
+            if not model in ['coral_ordinal', 'coral_ordinal_lrcn']:
                 self.model = load_model(self.saved_model)
             else:
                 self.model = load_model(self.saved_model, custom_objects = {'CoralOrdinal': coral.CoralOrdinal(num_classes=4), \

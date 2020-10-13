@@ -76,7 +76,7 @@ def train(data_type, seq_length, model, saved_model=None,
             epochs=nb_epoch,
             verbose=1,
             callbacks=[tb, early_stopper, csv_logger, checkpointer],
-            validation_data=generator,
+            validation_data=val_generator,
             validation_steps=40,
             workers=4)
 
@@ -85,7 +85,7 @@ def main():
     this file."""
     # model can be one of lstm, lrcn, mlp, conv_3d, c3d
     model = 'coral_ordinal_lrcn'
-    saved_model = None #'data/checkpoints/coral_ordinal-features.029-1.194.hdf5' #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
+    saved_model = 'data/checkpoints/coral_ordinal_lrcn-images.021-0.334.hdf5' #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
     class_limit = None  # int, can be 1-101 or None
     seq_length = 30
     load_to_memory = False  # pre-load the sequences into memory
