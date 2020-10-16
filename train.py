@@ -30,16 +30,29 @@ def train(data_type, seq_length, model, saved_model=None,
 
     # Get the data and process it.
     if image_shape is None:
-        data = DataSet(
-            seq_length=seq_length,
-            class_limit=class_limit, modelName = 'coral_ordinal'
-        )
+        if model in ['coral_ordinal', 'coral_ordinal_lrcn']:
+            data = DataSet(
+                seq_length=seq_length,
+                class_limit=class_limit, labelEncoding = 'coral_ordinal'
+            )
+        else:
+            data = DataSet(
+                seq_length=seq_length,
+                class_limit=class_limit, labelEncoding ='lstm'
+            )
     else:
-        data = DataSet(
-            seq_length=seq_length,
-            class_limit=class_limit,
-            image_shape=image_shape, modelName = 'coral_ordinal'
-        )
+        if model in ['coral_ordinal', 'coral_ordinal_lrcn']:
+            data = DataSet(
+                seq_length=seq_length,
+                class_limit=class_limit,
+                image_shape=image_shape, labelEncoding = 'coral_ordinal'
+            )
+        else:
+            data = DataSet(
+                seq_length=seq_length,
+                class_limit=class_limit,
+                image_shape=image_shape, labelEncoding='lstm'
+            )
 
     # Get samples per epoch.
     # Multiply by 0.7 to attempt to guess how much of data.data is the train set.
@@ -85,7 +98,7 @@ def main():
     this file."""
     # model can be one of lstm, lrcn, mlp, conv_3d, c3d
     model = 'coral_ordinal_lrcn'
-    saved_model = 'data/checkpoints/coral_ordinal_lrcn-images.021-0.334.hdf5' #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
+    saved_model = 'data/checkpoints/coral_ordinal_lrcn-images.012-0.573.hdf5' #'data/checkpoints/coral_ordinal_lrcn-images.021-0.334.hdf5' #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
     class_limit = None  # int, can be 1-101 or None
     seq_length = 30
     load_to_memory = False  # pre-load the sequences into memory

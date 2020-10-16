@@ -32,7 +32,7 @@ def threadsafe_generator(func):
 
 class DataSet():
 
-    def __init__(self, seq_length=40, class_limit=None, image_shape=(224, 224, 3), modelName = ""):
+    def __init__(self, seq_length=40, class_limit=None, image_shape=(224, 224, 3), labelEncoding = ""):
         """Constructor.
         seq_length = (int) the number of frames to consider
         class_limit = (int) number of classes to limit the data to.
@@ -53,12 +53,12 @@ class DataSet():
         self.data = self.clean_data()
 
         self.image_shape = image_shape
-        self.modelName = modelName
+        self.labelEncoding = labelEncoding
 
     @staticmethod
     def get_data():
         """Load our data from file."""
-        with open(os.path.join('data', 'data_file_ordinal_logistic_regression.csv'), 'r') as fin:
+        with open(os.path.join('data', 'data_file_ordinal_logistic_regression_train_test.csv'), 'r') as fin:
             reader = csv.reader(fin)
             data = list(reader)
 
@@ -94,7 +94,7 @@ class DataSet():
 
     def get_class_ordinal_encode(self, class_str):
         label_encoded = self.classes.index(class_str)
-        if not self.modelName == 'coral_ordinal':
+        if not self.labelEncoding == 'coral_ordinal':
             label_ordinal = np.zeros((len(self.classes),))
             for i in range(len(self.classes)):
                 if i <= label_encoded:
@@ -254,7 +254,10 @@ class DataSet():
         #filename = sample[2]
         #images = sorted(glob.glob(os.path.join(path, filename + '*jpg')))
         path = os.path.join(os.getcwd(), 'data', sample[0])
-        filename = sample[2][0:sample[2].rfind('-MatchedToMP4')]
+        if sample[2].rfind('-MatchedToMP4')>=0:
+            filename = sample[2][0:sample[2].rfind('-MatchedToMP4')]
+        else:
+            filename = sample[2][0:sample[2].rfind('-')]
         seg = int(sample[2][sample[2].rfind('-')+1:])
         images = [os.path.join(path, filename + '-' + str(i).zfill(5) + '.png') for i in range(30*seg, 30*(seg+1) )]
         return images
