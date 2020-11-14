@@ -71,17 +71,17 @@ def main():
     """These are the main training settings. Set each before running
     this file."""
     # model can be one of lstm, lrcn, mlp, conv_3d, c3d
-    modeled_pre = np.load('predicted-012-0.573.npy')
-    #modeled = np.load('predicted.npy')
-    accessed = np.load('y.npy')
-    plt.plot(modeled_pre, label = "modeled")
-    #plt.plot(modeled, label="current modeled")
-    plt.plot(accessed+0.05, label = 'accessed')
-    plt.legend()
-    plt.show()
+    # modeled_pre = np.load('predicted-012-0.573.npy')
+    # #modeled = np.load('predicted.npy')
+    # accessed = np.load('y.npy')
+    # plt.plot(modeled_pre, label = "modeled")
+    # #plt.plot(modeled, label="current modeled")
+    # plt.plot(accessed+0.05, label = 'accessed')
+    # plt.legend()
+    # plt.show()
 
     model = 'coral_ordinal_lrcn'
-    saved_model = 'data/checkpoints/coral_ordinal_lrcn-images.012-0.573.hdf5' #'data/checkpoints/coral_ordinal-features.104-1.384.hdf5' #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
+    saved_model = 'data/checkpoints/coral_ordinal_lrcn-images.003-0.526.hdf5' #'data/checkpoints/coral_ordinal-features.104-1.384.hdf5' #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
     class_limit = None  # int, can be 1-101 or None
     seq_length = 30
     load_to_memory = False  # pre-load the sequences into memory
