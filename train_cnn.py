@@ -7,12 +7,12 @@ https://keras.io/preprocessing/image/
 and
 https://keras.io/applications/
 """
-from keras.applications.inception_v3 import InceptionV3
-from keras.optimizers import SGD
-from keras.preprocessing.image import ImageDataGenerator
-from keras.models import Model
-from keras.layers import Dense, GlobalAveragePooling2D
-from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
+from tensorflow.keras.applications.inception_v3 import InceptionV3
+from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
+from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from data import DataSet
 import pandas
 import os.path
