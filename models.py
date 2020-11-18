@@ -44,7 +44,7 @@ class ResearchModels():
         # Get the appropriate model.
         if self.saved_model is not None:
             print("Loading model %s" % self.saved_model)
-            if not model in ['coral_ordinal', 'coral_ordinal_lrcn']:
+            if not model in ['coral_ordinal', 'coral_ordinal_lrcn', 'conv_3d']:
                 self.model = load_model(self.saved_model)
             else:
                 self.model = load_model(self.saved_model, custom_objects = {'CoralOrdinal': coral.CoralOrdinal(num_classes=4), \
@@ -64,11 +64,11 @@ class ResearchModels():
             self.model = self.mlp()
         elif model == 'conv_3d':
             print("Loading Conv3D")
-            self.input_shape = (seq_length, 80, 80, 3)
+            self.input_shape = (seq_length, 250, 250, 3)
             self.model = self.conv_3d()
         elif model == 'c3d':
             print("Loading C3D")
-            self.input_shape = (seq_length, 80, 80, 3)
+            self.input_shape = (seq_length, 250, 250, 3)
             self.model = self.c3d()
         elif model == 'simple':
             print("Loading simple")
@@ -87,7 +87,7 @@ class ResearchModels():
             sys.exit()
 
         # Now compile the network.
-        if not model in ['coral_ordinal', 'coral_ordinal_lrcn']:
+        if not model in ['coral_ordinal', 'coral_ordinal_lrcn', 'conv_3d']:
             optimizer = Adam(lr=1e-5, decay=1e-6)
             self.model.compile(loss='mean_squared_error', optimizer=optimizer,
                            metrics=metrics)
@@ -203,22 +203,22 @@ class ResearchModels():
             32, (3,3,3), activation='relu', input_shape=self.input_shape
         ))
         model.add(MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2)))
+        model.add(Conv3D(32, (3,3,3), activation='relu'))
+        model.add(MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2)))
+        model.add(Conv3D(64, (3,3,3), activation='relu'))
         model.add(Conv3D(64, (3,3,3), activation='relu'))
         model.add(MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2)))
-        model.add(Conv3D(128, (3,3,3), activation='relu'))
-        model.add(Conv3D(128, (3,3,3), activation='relu'))
-        model.add(MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2)))
-        model.add(Conv3D(256, (2,2,2), activation='relu'))
-        model.add(Conv3D(256, (2,2,2), activation='relu'))
+        model.add(Conv3D(64, (2,2,2), activation='relu'))
+        model.add(Conv3D(64, (2,2,2), activation='relu'))
         model.add(MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2)))
 
         model.add(Flatten())
-        model.add(Dense(1024))
+        model.add(Dense(32))
         model.add(Dropout(0.5))
-        model.add(Dense(1024))
+        model.add(Dense(32))
         model.add(Dropout(0.5))
-        model.add(Dense(self.nb_classes, activation='softmax'))
-
+        #model.add(Dense(self.nb_classes, activation='softmax'))
+        model.add(coral.CoralOrdinal(num_classes=4))  # Ordinal variable has 5 labels, 0 through 4.
         return model
 
     def c3d(self):

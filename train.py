@@ -41,7 +41,7 @@ def train(data_type, seq_length, model, saved_model=None,
                 class_limit=class_limit, labelEncoding ='lstm'
             )
     else:
-        if model in ['coral_ordinal', 'coral_ordinal_lrcn']:
+        if model in ['coral_ordinal', 'coral_ordinal_lrcn', 'conv_3d']:
             data = DataSet(
                 seq_length=seq_length,
                 class_limit=class_limit,
@@ -98,8 +98,8 @@ def main():
     """These are the main training settings. Set each before running
     this file."""
     # model can be one of lstm, lrcn, mlp, conv_3d, c3d
-    model = 'coral_ordinal_lrcn'
-    saved_model = 'data/checkpoints/coral_ordinal_lrcn-images.025-0.885.hdf5' #'data/checkpoints/coral_ordinal_lrcn-images.021-0.334.hdf5' #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
+    model = 'conv_3d'
+    saved_model = None #'data/checkpoints/coral_ordinal_lrcn-images.021-0.334.hdf5' #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
     class_limit = None  # int, can be 1-101 or None
     seq_length = 30
     load_to_memory = False  # pre-load the sequences into memory
