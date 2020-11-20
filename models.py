@@ -93,7 +93,6 @@ class ResearchModels():
                            metrics=metrics)
         else:
             self.model.compile(loss=coral.OrdinalCrossEntropy(num_classes=4), metrics=[coral.MeanAbsoluteErrorLabels])
-
         print(self.model.summary())
 
     def lstm(self):
@@ -200,22 +199,22 @@ class ResearchModels():
         # Model.
         model = Sequential()
         model.add(Conv3D(
-            32, (3,3,3), activation='relu', input_shape=self.input_shape
+            32, (3, 3, 3), activation='relu', input_shape=self.input_shape
         ))
         model.add(MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2)))
-        model.add(Conv3D(32, (3,3,3), activation='relu'))
+        model.add(Conv3D(64, (3, 3, 3), activation='relu'))
         model.add(MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2)))
-        model.add(Conv3D(64, (3,3,3), activation='relu'))
-        model.add(Conv3D(64, (3,3,3), activation='relu'))
+        model.add(Conv3D(128, (3, 3, 3), activation='relu'))
+        model.add(Conv3D(128, (3, 3, 3), activation='relu'))
         model.add(MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2)))
-        model.add(Conv3D(64, (2,2,2), activation='relu'))
-        model.add(Conv3D(64, (2,2,2), activation='relu'))
+        model.add(Conv3D(256, (2, 2, 2), activation='relu'))
+        model.add(Conv3D(256, (2, 2, 2), activation='relu'))
         model.add(MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2)))
 
         model.add(Flatten())
-        model.add(Dense(32))
+        model.add(Dense(1024))
         model.add(Dropout(0.5))
-        model.add(Dense(32))
+        model.add(Dense(1024))
         model.add(Dropout(0.5))
         #model.add(Dense(self.nb_classes, activation='softmax'))
         model.add(coral.CoralOrdinal(num_classes=4))  # Ordinal variable has 5 labels, 0 through 4.

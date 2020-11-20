@@ -56,6 +56,13 @@ def coral_ordinal_lrcn_remove_layer(input_shape):
     #model.add(coral.CoralOrdinal(num_classes=4))  # Ordinal variable has 5 labels, 0 through 4.
     return model
 
+def copyModel2Model(model_source, model_target):
+    for l_tg, l_sr in zip(model_target.layers, model_source.layers):
+        wk0 = l_sr.get_weights()
+        l_tg.set_weights(wk0)
+    model_target.save('test_complete.hdf5')
+    print("model source was copied into model target")
+
 def main():
     """These are the main training settings. Set each before running
     this file."""
@@ -68,13 +75,6 @@ def main():
     # Create your new model with the two layers removed and transfer weights
     new_model =  coral_ordinal_lrcn_remove_layer(input_shape=(seq_length, 250, 250, 3))
     new_model.summary()
-    def copyModel2Model(model_source, model_target):
-        for l_tg, l_sr in zip(model_target.layers, model_source.layers):
-            wk0 = l_sr.get_weights()
-            l_tg.set_weights(wk0)
-        model_target.save('test_complete.hdf5')
-        print("model source was copied into model target")
-
     copyModel2Model(rm.model, new_model)
     onnx_model = keras2onnx.convert_keras(new_model, new_model.name)
     onnx.save(onnx_model, 'test_complete.onnx')
