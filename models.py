@@ -317,7 +317,7 @@ class ResearchModels():
         model = Sequential()
 
         # first (non-default) block
-        model.add(TimeDistributed(Conv2D(32, (7, 7), strides=(2, 2), padding='same',
+        model.add(TimeDistributed(Conv2D(32, (7, 7), strides=(2, 2), padding='valid',
                                          kernel_initializer=initialiser, kernel_regularizer=regularizers.l2(l=reg_lambda)),
                                   input_shape=self.input_shape))
         model.add(TimeDistributed(BatchNormalization()))

@@ -98,7 +98,7 @@ def main():
     """These are the main training settings. Set each before running
     this file."""
     # model can be one of lstm, lrcn, mlp, conv_3d, c3d
-    model = 'conv_3d'
+    model = 'coral_ordinal_lrcn'
     saved_model = None #'data/checkpoints/coral_ordinal_lrcn-images.021-0.334.hdf5' #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
     class_limit = None  # int, can be 1-101 or None
     seq_length = 30
