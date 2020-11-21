@@ -6,6 +6,8 @@ import pandas as pd
 from data import DataSet
 import random
 from models import ResearchModels
+import matplotlib.pyplot as plt
+from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 
 coral_ordinal_weigth = np.array([[ -0.8586888909339905],[ 0.9852843284606934],[0.5865223407745361],[0.5686368346214294],
                         [0.7041797041893005], [-0.2871415317058563],[-0.2728332579135895],[-0.7504894733428955],
@@ -30,6 +32,7 @@ def saveModelWithInputShapeModification(modelDir):
     rm = ResearchModels(4, model, seq_length, saved_model, features_length=14)
     import tensorflow as tf
     from mlModelTrim import coral_ordinal_lrcn_remove_layer, copyModel2Model
+    #conversion with custum layer failed, so convert the model before the coral ordinal.
     new_model = coral_ordinal_lrcn_remove_layer(input_shape=(seq_length, 250, 250, 3))
     copyModel2Model(rm.model, new_model)
     new_model.summary()
@@ -96,6 +99,28 @@ def runWithOriginalModel(model, inputdata):
     labels = probs_df.idxmax(axis=1)
     return labels.values[0]
 
+def runWithOriginalTFModel(loaded_tfmodel, inputdata):
+    ordinal_logits = loaded_tfmodel(inputdata)
+    tensor_probs = coral.ordinal_softmax(ordinal_logits)
+
+    # Convert the tensor into a pandas dataframe.
+    probs_df = pd.DataFrame(tensor_probs.numpy())
+
+    probs_df.head()
+    labels = probs_df.idxmax(axis=1)
+    return labels.values[0]
+
+def convertTFModelToFrozenGraph(tfmodel):
+    infer = tfmodel.signatures['serving_default']
+
+    f = tf.function(infer).get_concrete_function(tf.TensorSpec([1, 30, 250, 250, 3], dtype=tf.float32))
+    f2 = convert_variables_to_constants_v2(f)
+    graph_def = f2.graph.as_graph_def()
+
+    # Export frozen graph
+    with tf.io.gfile.GFile('frozen_graph_full_model.pb', 'wb') as f:
+        f.write(graph_def.SerializeToString())
+
 def main():
     modeldir = "saved_model"
     convertedModelName = 'model.tflite'
@@ -105,11 +130,27 @@ def main():
     rm = ResearchModels(len(dataObj.classes), "coral_ordinal_lrcn", 30, modelPath, features_length=14)
     interpreter = tf.lite.Interpreter(model_path=os.path.join(modeldir, convertedModelName))
     interpreter.allocate_tensors()
-    for i in range(200):
+    loaded_tfmodel = tf.saved_model.load('fullModel')
+    convertTFModelToFrozenGraph(loaded_tfmodel)
+    preds=[]
+    pred_converteds = []
+    pred_originalTFs = []
+    groundtruths = []
+    for i in range(100):
         input_data, groundtruth = getSequenceFrame(dataObj, trainData)
         pred = runWithOriginalModel(rm.model, input_data)
         pred_converted = runWithConvertedModel(interpreter, input_data)
-        print('original Model, converted Model, groundtruth: ', pred, pred_converted, groundtruth)
+        pred_originalTF = runWithOriginalTFModel(loaded_tfmodel, input_data)
+        print('original Model, converted Model, full-tf-pb-model, groundtruth: ', pred, pred_converted, pred_originalTF, groundtruth)
+        preds.append(pred)
+        pred_converteds.append(pred_converted+0.02) # add some shift for plot
+        pred_originalTFs.append(pred_originalTF+0.05)
+        groundtruths.append(groundtruth)
+    plt.plot(preds, label = "Original Keras Model")
+    plt.plot(pred_converteds, label="TF Lite Model")
+    plt.plot(pred_originalTFs, label = 'TF Model')
+    plt.legend()
+    plt.show()
 
 if __name__ == '__main__':
     main()

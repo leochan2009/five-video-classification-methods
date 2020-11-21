@@ -68,10 +68,16 @@ def main():
     this file."""
     # model can be one of lstm, lrcn, mlp, conv_3d, c3d
     model = 'coral_ordinal_lrcn'
-    saved_model = 'data/checkpoints/coral_ordinal_lrcn-images.001-3.123.hdf5' #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
+    saved_model = 'data/checkpoints/coral_ordinal_lrcn-images.355-0.294-val_loss-0.179.hdf5' #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
     seq_length = 30
     rm = ResearchModels(4, model, seq_length, saved_model, features_length=14)
     rm.model.summary()
+    import tensorflow as tf
+    run_model = tf.function(lambda x: rm.model(x))
+    BATCH_SIZE = 1
+    concrete_func = run_model.get_concrete_function(
+        tf.TensorSpec([BATCH_SIZE, seq_length, 250, 250, 3], rm.model.inputs[0].dtype))
+    rm.model.save("fullModel", save_format="tf", signatures=concrete_func)
     # Create your new model with the two layers removed and transfer weights
     new_model =  coral_ordinal_lrcn_remove_layer(input_shape=(seq_length, 250, 250, 3))
     new_model.summary()
