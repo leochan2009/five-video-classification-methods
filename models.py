@@ -331,6 +331,7 @@ class ResearchModels():
         model = add_default_block(model, 128, init=initialiser, reg_lambda=reg_lambda)
         model = add_default_block(model, 256, init=initialiser, reg_lambda=reg_lambda)
         model = add_default_block(model, 512, init=initialiser, reg_lambda=reg_lambda)
+        model = add_default_block(model, 128, init=initialiser, reg_lambda=reg_lambda)
 
         # LSTM output head
         model.add(TimeDistributed(Flatten()))

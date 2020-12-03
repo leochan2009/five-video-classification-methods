@@ -1,4 +1,4 @@
-import os
+import os, time
 import tensorflow as tf
 import numpy as np
 import coral_ordinal as coral
@@ -43,9 +43,10 @@ def saveModelWithInputShapeModification(modelDir):
     new_model.save(modelDir, save_format="tf", signatures=concrete_func)
 
 
-def getSequenceFrame(dataObj, trainData):
+def getSequenceFrame(dataObj, sample):
     # Get a random sample.
-    sample = random.choice(trainData)
+    #sample = random.choice(trainData)
+    #print(sample)
     # Check to see if we've already saved this sequence.
     # Get and resample frames.
     frames = dataObj.get_frames_for_sample(sample)
@@ -62,7 +63,7 @@ dataObj = DataSet(
     class_limit=None,
     image_shape=(250, 250, 3), labelEncoding='coral_ordinal'
 )
-trainData, test = dataObj.split_train_test()
+trainData, testData = dataObj.split_train_test()
 
 def runWithConvertedModel(interpreter, input_data):
     # Get input and output tensors.
@@ -126,31 +127,45 @@ def main():
     convertedModelName = 'model.tflite'
     #saveModelWithInputShapeModification(modeldir)
     #convertToTFLiteModel(modeldir, convertedModelName)
-    modelPath = 'data/checkpoints/coral_ordinal_lrcn-images.355-0.294-val_loss-0.179.hdf5'
+    modelPath = 'data/checkpoints/coral_ordinal_lrcn-adddefaultblockimages.004-0.469.hdf5'
     rm = ResearchModels(len(dataObj.classes), "coral_ordinal_lrcn", 30, modelPath, features_length=14)
     interpreter = tf.lite.Interpreter(model_path=os.path.join(modeldir, convertedModelName))
     interpreter.allocate_tensors()
     loaded_tfmodel = tf.saved_model.load('fullModel')
-    convertTFModelToFrozenGraph(loaded_tfmodel)
+    #convertTFModelToFrozenGraph(loaded_tfmodel)
     preds=[]
     pred_converteds = []
     pred_originalTFs = []
     groundtruths = []
-    for i in range(100):
-        input_data, groundtruth = getSequenceFrame(dataObj, trainData)
+    for sample in testData:
+        input_data, groundtruth = getSequenceFrame(dataObj, sample)
+        start = time.time()
         pred = runWithOriginalModel(rm.model, input_data)
+        end = time.time()
+        orginalModelTime = end-start
         pred_converted = runWithConvertedModel(interpreter, input_data)
+        start = time.time()
+        convertedModelTime =  start -end
         pred_originalTF = runWithOriginalTFModel(loaded_tfmodel, input_data)
-        print('original Model, converted Model, full-tf-pb-model, groundtruth: ', pred, pred_converted, pred_originalTF, groundtruth)
+        end = time.time()
+        orginalTFModelTime = end - start
+        print('reduced feature Model, lite Model, original Keras model, groundtruth: ', pred, pred_converted, pred_originalTF, groundtruth)
+        print('reduced feature Model, lite Model, original Keras model time: ', orginalModelTime, convertedModelTime, orginalTFModelTime)
         preds.append(pred)
-        pred_converteds.append(pred_converted+0.02) # add some shift for plot
-        pred_originalTFs.append(pred_originalTF+0.05)
+        pred_converteds.append(pred_converted) # add some shift for plot
+        pred_originalTFs.append(pred_originalTF)
         groundtruths.append(groundtruth)
-    plt.plot(preds, label = "Original Keras Model")
+    plt.plot(preds, label = "reduced feature Model")
     plt.plot(pred_converteds, label="TF Lite Model")
-    plt.plot(pred_originalTFs, label = 'TF Model')
+    plt.plot(pred_originalTFs, label = 'original Keras Model')
+    plt.plot(groundtruths, label='GroundTruth')
     plt.legend()
     plt.show()
-
+    error_pred = np.sqrt(np.sum((np.array(preds)-np.array(groundtruths))**2)/len(preds))
+    error_pred_originalTFs = np.sqrt(np.sum((np.array(pred_originalTFs)-np.array(groundtruths))**2)/ len(pred_originalTFs))
+    print(error_pred, error_pred_originalTFs)
+    np.save('preds.npy', np.array(preds))
+    np.save('groundtruths.npy', np.array(groundtruths))
+    np.save('pred_originalTFs.npy', np.array(pred_originalTFs))
 if __name__ == '__main__':
     main()

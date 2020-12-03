@@ -1,7 +1,7 @@
 """
 Train our RNN on extracted features or images.
 """
-from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, CSVLogger
+from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, CSVLogger
 from models import ResearchModels
 from data import DataSet
 import coral_ordinal as coral
@@ -81,7 +81,7 @@ def main():
     # plt.show()
 
     model = 'coral_ordinal_lrcn'
-    saved_model = 'data/checkpoints/coral_ordinal_lrcn-images.355-0.294-val_loss-0.179.hdf5' #'data/checkpoints/coral_ordinal-features.104-1.384.hdf5' #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
+    saved_model = 'data/checkpoints/coral_ordinal_lrcn-adddefaultblockimages.185-0.155.hdf5' #'data/checkpoints/coral_ordinal-features.104-1.384.hdf5' #"data/checkpoints/lstm-features.456-0.148.hdf5" # None or weights file
     class_limit = None  # int, can be 1-101 or None
     seq_length = 30
     load_to_memory = False  # pre-load the sequences into memory
