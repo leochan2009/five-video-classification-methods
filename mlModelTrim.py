@@ -4,9 +4,10 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.layers import TimeDistributed, Activation, LSTM, Dense
 from tensorflow.keras import regularizers
 from models import ResearchModels
+from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 import keras2onnx
 import onnx
-
+import tensorflow as tf
 def coral_ordinal_lrcn_remove_layer(input_shape):
     def add_default_block(model, kernel_filters, init, reg_lambda):
         # conv
@@ -87,6 +88,31 @@ def apply(model,outfile):
     change_input_dim(model)
     onnx.save(model, outfile)
 
+def frozenGraph(rm, seq_length):
+    run_model = tf.function(lambda x: rm.model(x))
+    BATCH_SIZE = 1
+    concrete_func = run_model.get_concrete_function(
+        tf.TensorSpec([BATCH_SIZE, seq_length, 250, 250, 3], rm.model.inputs[0].dtype))
+    frozen_func = convert_variables_to_constants_v2(concrete_func)
+    frozen_func.graph.as_graph_def()
+    layers = [op.name for op in frozen_func.graph.get_operations()]
+    print("-" * 60)
+    print("Frozen model layers: ")
+    for layer in layers:
+        print(layer)
+    print("-" * 60)
+    print("Frozen model inputs: ")
+    print(frozen_func.inputs)
+    print("Frozen model outputs: ")
+    print(frozen_func.outputs)
+    tf.io.write_graph(graph_or_graph_def=frozen_func.graph,
+                      logdir='',
+                      name=f"frozen_graph.pb",
+                      as_text=False)
+    tf.io.write_graph(graph_or_graph_def=frozen_func.graph,
+                      logdir='',
+                      name=f"frozen_graph.pbtxt",
+                      as_text=True)
 
 def main():
     """These are the main training settings. Set each before running
@@ -97,12 +123,9 @@ def main():
     seq_length = 30
     rm = ResearchModels(4, model, seq_length, saved_model, features_length=14)
     rm.model.summary()
-    import tensorflow as tf
-    run_model = tf.function(lambda x: rm.model(x))
-    BATCH_SIZE = 1
-    concrete_func = run_model.get_concrete_function(
-        tf.TensorSpec([BATCH_SIZE, seq_length, 250, 250, 3], rm.model.inputs[0].dtype))
-    rm.model.save("fullModel", save_format="tf", signatures=concrete_func)
+
+    frozenGraph(rm, seq_length)
+    #rm.model.save("fullModel", save_format="tf", signatures=concrete_func)
     # Create your new model with the two layers removed and transfer weights
     new_model =  coral_ordinal_lrcn_remove_layer(input_shape=(seq_length, 250, 250, 3))
     new_model.summary()
